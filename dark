@@ -5,5 +5,13 @@ var file = process.argv[2]
 fs.readFile(`${file}`, 'utf8', function(err, data) {
     if (err) throw err;
     var input = data;
-    console.log(getFile(input));
+    console.log("File data is:\n" + getFile(input));
+    file = file.replace(/.dark/, "")
+    fs.writeFile(`${file}.css`, getFile(input), err => {
+      if (err) {
+        console.error(err)
+        return
+      }
+      //file written successfully
+    })
 });

@@ -4,8 +4,7 @@
   "description": "css to dark",
   "main": "index.js",
   "scripts": {
-    "test": "npx chitchatsjs build tests/main.chit.js && node tests/main.chit.js",
-    "build" : "./dark main.dark"
+    "test": "./dark main.dark"
   },
   "repository": {
     "type": "git",

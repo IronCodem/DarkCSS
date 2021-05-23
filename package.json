@@ -1,0 +1,22 @@
+{
+  "name": "darkcss",
+  "version": "0.0.1",
+  "description": "css to dark",
+  "main": "index.js",
+  "scripts": {
+    "test": "npx chitchatsjs build tests/main.chit.js && node tests/main.chit.js",
+    "build" : "./dark main.dark"
+  },
+  "repository": {
+    "type": "git",
+    "url": "d"
+  },
+  "keywords": [
+    "d"
+  ],
+  "author": "darkdarcool30",
+  "license": "MIT",
+  "dependencies": {
+    "chitchatsjs": "0.0.9"
+  }
+}

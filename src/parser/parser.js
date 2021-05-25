@@ -1,78 +1,113 @@
-var expecthONE = false;
-var isTag = false;
-var write = ""
-var theTag = ""
-Array.prototype.remove = function(index) {
-    this.splice(index, 1);
-}
-function parse(data) {
-  for (let i = 0; i < data.length; i++) {
-    var parsedata = data[i];
-    var line = parsedata.split(' ');
-    if (expecthONE == true) {
-      if (write.includes('h1 {') == true) {
+// Extra Whitespace
+const whitespaceKeys = ['\s', '\t', '\n', '', ' '];
 
-      }
-      else {
-        write = "h1 {\n"
-      }
-      console.log("WE HAVE H1 data!")
-      console.log(line);
-        var e = i + 1
-        e = e++
-        e = e++
-        console.log(line[e])
-        if (line[e] == "color") {
-          e++
-          console.log("Found color")
-          if (line[e] == "=") {
-            e++
-            if (line[e] != undefined) {
-              write = write + `color: ${line[e]}\n`
-            }
-          }
-      }
-      h = i + 1
-      write = write + "}"
-      expecthONE = false 
-      
-      
+// Keys that apply to content.---
+const specialKeysLevelOne = {
+	place: 'float',
+  placeText: 'text-align',
+  color: 'color',
+  width: 'width',
+  height: 'height',
+  display: 'display',
+  font: 'font-family',
+  fontSize: 'font-size',
+  fontWeight: 'font-weight',
+  space: 'letter-spacing',
+  padding: 'padding',
+  decoration: 'text-decoration'
+};
+
+// Keys that apply to content.---.---
+const specialKeysLevelTwo = {
+	fillColor: 'background',
+  border: 'border'
+};
+
+// Make specialKeys immutable
+Object.freeze(specialKeysLevelOne);
+Object.freeze(specialKeysLevelTwo);
+
+/**
+ * tokenize - create css from darkcss
+ * @param data {String} - darkcss code
+ */
+function tokenize(data) {
+	// Remove whitespace
+	const formatted = data
+		.replace(/\s/g, '')
+		.replace(/\t/g, '')
+		.replace(/\n/g, '');
+	
+	// Remove blocking syntax	
+	const split = formatted
+		.replace(/\{/g, '\n')
+		.replace(/\}/g, '\n')
+		.replace(/;/g, '\n');
+	
+	// Seperate into array with tokens
+	const tokens = split.split('\n');
+	
+	// Tree of raw tokens	
+	const tokenTree = {};
+	// Selector being used
+	let currentSelector = '';
+
+	// Take tokens and place into token tree
+	for(i = tokens.length - 1; i > -1; i--) {
+		const currentToken = tokens[tokens.length - i - 1];
+		if(/^[a-zA-Z0-9_]+$/.test(currentToken) || /^\.[a-zA-Z0-9_]+$/.test(currentToken)) {
+			currentSelector = currentToken;
+			if(!tokenTree[currentSelector]) tokenTree[currentSelector] = [];
+		} else if(/^[a-zA-Z0-9_]+\.[a-zA-Z0-9_]+=[a-zA-Z0-9_]+/.test(currentToken) || /^[a-zA-Z0-9_]+\.[a-zA-Z0-9_]+\.[a-zA-Z0-9_]+=[a-zA-Z0-9_]+/.test(currentToken)) {
+			tokenTree[currentSelector].push(currentToken);
+		} else if(!whitespaceKeys.includes(currentToken)) {
+			throw new Error('Unexpected Key When Parsing. Token:', currentToken);
     }
-    for (let f = 0; f < line.length; f++) {
-      switch (line[f]) {
-        case "h1":
-          isTag = true;
-          theTag = "h1 {"
-          f = f + 1;
-          switch (line[f]) {
-            case "{":
-              expecthONE = true
-              console.log("Tag found");
-          }
-          break;
-        case " ":
-          console.log("Trailing space");
-          break;
-        case "}":
-          expecthONE = false
-          console.log("Found closing tag!");
-          break;
-        case "{":
-          if (isTag != false) {
-            console.log("This is a tag");
-          }
-          else {
-            console.log("This is not a tag");
-          }
-          break;
-        case "":
-          break;
-        default:
-          console.log("UNKNOWN: " + line[f]);
-          break;
-      }
-    }
-  }
-  return write;
+	}
+	
+	// Tree of tokens with proper formatting
+	const finalTokens = {}
+	// Take raw token tree and compare with special keys
+	for (const [key, value] of Object.entries(tokenTree)) {
+		if(!finalTokens[key]) finalTokens[key] = {};
+		value.forEach((item) => {
+			const formatted = item.replace('=', '.').split('.');
+			// If the item does not have nested properties
+			if(formatted.length === 3) {
+				if(Object.prototype.hasOwnProperty.call(specialKeysLevelOne, formatted[1])) {
+					finalTokens[key][specialKeysLevelOne[formatted[1]]] = formatted[2];
+				} else {
+					finalTokens[key][formatted[1]] = formatted[2];
+				}
+			// If the item does have nested properties
+			} else {
+				if(Object.prototype.hasOwnProperty.call(specialKeysLevelOne, formatted[1]) && Object.prototype.hasOwnProperty.call(specialKeysLevelTwo, formatted[2])) {
+					finalTokens[key][`${specialKeysLevelOne[formatted[1]]}-${specialKeysLevelTwo[formatted[2]]}`] = formatted[3];
+				} else if(Object.prototype.hasOwnProperty.call(specialKeysLevelOne, formatted[1])) {
+					finalTokens[key][`${specialKeysLevelOne[formatted[1]]}-${formatted[2]}`] = formatted[3];
+				} else if(Object.prototype.hasOwnProperty.call(specialKeysLevelTwo, formatted[2])) {
+					finalTokens[key][`${formatted[1]}-${specialKeysLevelTwo[formatted[2]]}`] = formatted[3];
+				} else {
+					finalTokens[key][`${formatted[1]}-${formatted[2]}`] = formatted[3];
+				}
+			}
+			
+		});
+	}
+	
+	// Final text for file
+	let finalText = '';
+	// Append each key-value to the final text
+	for(const [key, value] of Object.entries(finalTokens)) {
+		const thisBlock = `${key} {$}`;
+		let properties = '';
+		for(const [valueKey, valueValue] of Object.entries(value)) {
+			properties += `\t${valueKey}: ${valueValue};\n`;
+		}
+		const finalBlock = thisBlock.replace('$', `\n${properties}`);
+		finalText += `${finalBlock}\n`;
+	}
+	return finalText;
 }
-module.exports = parse;
+
+module.exports = tokenize;

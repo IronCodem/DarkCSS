@@ -1,10 +1,11 @@
 {
   "name": "darkcss",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "css to dark",
+  "bin": "darkcss",
   "main": "index.js",
   "scripts": {
-    "test": "./dark main.dark"
+    "test": "./darkcss main.dark -o main.css"
   },
   "repository": {
     "type": "git",
@@ -16,6 +17,7 @@
   "author": "darkdarcool30",
   "license": "MIT",
   "dependencies": {
-    "chitchatsjs": "0.0.9"
+    "chitchatsjs": "0.0.9",
+    "minimist": "^1.2.5"
   }
 }
